@@ -1,39 +1,38 @@
-import os #for working with files and directories
+import os  # for working with files and directories
 
 class InvalidFormatException(Exception):
     pass
 
-class SparseMatrix: #the sparsematrix class that loads,adds, subtracts and multiplies matrices 
-    def __init__(self, file_path=None, num_rows=0, num_cols=0):
-        self.num_rows = num_rows #number of rows in our matrix
-        self.num_cols = num_cols #number of columns in our matrix
+class SparseMatrix:
+    def _init_(self, file_path=None, num_rows=0, num_cols=0):
+        self.num_rows = num_rows
+        self.num_cols = num_cols
         self.data = {}  # (row, col): value
 
-        if file_path: #load matrices from this file if file is given
+        if file_path:
             self.load_from_file(file_path)
 
     def load_from_file(self, file_path):
         try:
             with open(file_path, 'r') as file:
                 lines = [line.strip() for line in file if line.strip() != '']
-                
+
                 if not lines[0].startswith("rows=") or not lines[1].startswith("cols="):
                     raise InvalidFormatException("Input file has wrong format")
-                  #take numbers from the first two lines
+
                 self.num_rows = int(lines[0].split("=")[1])
                 self.num_cols = int(lines[1].split("=")[1])
-                  #process the rest of the lines (non-zero matrix values since this is a sparse matrix)
+
                 for line in lines[2:]:
-                    #each line must be in form (row,col,value)
                     if not (line.startswith("(") and line.endswith(")")):
                         raise InvalidFormatException("Input file has wrong format")
-                    
-                    line = line[1:-1]  # Remove parentheses
+
+                    line = line[1:-1]
                     parts = [part.strip() for part in line.split(",")]
 
                     if len(parts) != 3:
                         raise InvalidFormatException("Input file has wrong format")
-                    #convert the three parts into integers
+
                     row, col, value = parts
 
                     if "." in row or "." in col or "." in value:
@@ -42,24 +41,24 @@ class SparseMatrix: #the sparsematrix class that loads,adds, subtracts and multi
                     row = int(row)
                     col = int(col)
                     value = int(value)
-                     #save this value into the matrix
+
                     self.set_element(row, col, value)
         except ValueError:
             raise InvalidFormatException("Input file has wrong format")
         except FileNotFoundError:
-            print(f"File not found: {file_path}")
-            exit() #stop running
+            print(f"❌ File not found: {file_path}")
+            exit()
 
-    def set_element(self, row, col, value): #function that sets value in the matrix
+    def set_element(self, row, col, value):
         if value != 0:
             self.data[(row, col)] = value
         elif (row, col) in self.data:
             del self.data[(row, col)]
 
-    def get_element(self, row, col): #function that gets a value from the matrix
+    def get_element(self, row, col):
         return self.data.get((row, col), 0)
 
-    def __add__(self, other):
+    def _add_(self, other):
         if self.num_rows != other.num_rows or self.num_cols != other.num_cols:
             raise ValueError("Matrix dimensions do not match for addition")
 
@@ -71,7 +70,7 @@ class SparseMatrix: #the sparsematrix class that loads,adds, subtracts and multi
                 result.set_element(*key, val)
         return result
 
-    def __sub__(self, other):
+    def _sub_(self, other):
         if self.num_rows != other.num_rows or self.num_cols != other.num_cols:
             raise ValueError("Matrix dimensions do not match for subtraction")
 
@@ -83,7 +82,7 @@ class SparseMatrix: #the sparsematrix class that loads,adds, subtracts and multi
                 result.set_element(*key, val)
         return result
 
-    def __mul__(self, other):
+    def _mul_(self, other):
         if self.num_cols != other.num_rows:
             raise ValueError("Matrix dimensions do not match for multiplication")
 
@@ -97,44 +96,60 @@ class SparseMatrix: #the sparsematrix class that loads,adds, subtracts and multi
                     result.set_element(i, j, current + val1 * val2)
         return result
 
-   
+    def to_string(self):
+        lines = [f"rows={self.num_rows}", f"cols={self.num_cols}"]
+        for (r, c), v in sorted(self.data.items()):
+            lines.append(f"({r},{c},{v})")
+        return "\n".join(lines)
+
+    def save_to_file(self, filename):
+        with open(filename, "w") as file:
+            file.write(self.to_string())
 
 def main():
-    base_path = "/dsa/sparse_matrix/sample_inputs/"
-    f1 = input("Enter first matrix filename (e.g., matrix1.txt): ")
-    f2 = input("Enter second matrix filename (e.g., matrix2.txt): ")
+    # ✅ Correct base path where your matrix files are stored
+    base_path = "mnt/c/Users/LENOVO/OneDrive/Desktop/DSA"
+    f1 = input("Enter first matrix filename (e.g., easy_sample_02_1.txt): ")
+    f2 = input("Enter second matrix filename (e.g., easy_sample_02_2.txt): ")
     file1 = os.path.join(base_path, f1)
     file2 = os.path.join(base_path, f2)
+
+    print(f"📂 Loading first matrix from: {file1}")
+    print(f"📂 Loading second matrix from: {file2}")
 
     try:
         A = SparseMatrix(file1)
         B = SparseMatrix(file2)
 
-        print("Select operation:\n1) Add\n2) Subtract\n3) Multiply")
+        print("\nSelect operation:")
+        print("1) Add")
+        print("2) Subtract")
+        print("3) Multiply")
         op = input("Enter choice (1/2/3): ")
 
         if op == '1':
             C = A + B
-            print("Result of Addition:", C.to_string())
+            print("✅ Result of Addition:\n", C.to_string())
         elif op == '2':
             C = A - B
-            print("Result of Subtraction:", C.to_string())
+            print("✅ Result of Subtraction:\n", C.to_string())
         elif op == '3':
             C = A * B
-            print("Result of Multiplication:", C.to_string())
+            print("✅ Result of Multiplication:\n", C.to_string())
         else:
-            print("Invalid option")
+            print("❌ Invalid option")
             return
 
-        C.save_to_file("result_matrix.txt")
-        print("Result saved to 'result_matrix.txt'")
+        output_path = os.path.join(base_path, "result_matrix.txt")
+        C.save_to_file(output_path)
+        print(f"\n📄 Result saved to: {output_path}")
 
     except InvalidFormatException as e:
-        print(f"Error: {e}")
+        print(f"❌ Format Error: {e}")
     except ValueError as ve:
-        print(f"Operation Error: {ve}")
+        print(f"❌ Operation Error: {ve}")
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     main()
 
  
